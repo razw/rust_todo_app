@@ -6,6 +6,7 @@ use axum::{
     http::StatusCode,
 };
 use sqlx::sqlite::{SqlitePoolOptions, SqliteConnectOptions};
+use validator::Validate;
 use std::str::FromStr;
 use serde::Deserialize;
 mod models;
@@ -14,13 +15,15 @@ mod store;
 use store::TodoStore;
 use models::Todo;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Validate)]
 struct CreateTodoRequest {
+    #[validate(length(min = 1, max = 200, message = "タイトルは1文字以上200文字以下である必要があります"))]
     title: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Validate)]
 struct UpdateTodoRequest {
+    #[validate(length(min = 1, max = 200, message = "タイトルは1文字以上200文字以下である必要があります"))]
     title: Option<String>,
     completed: Option<bool>,
 }
@@ -48,10 +51,36 @@ async fn get_todo_by_id(
 async fn create_todo(
     State(store): State<TodoStore>,
     Json(payload): Json<CreateTodoRequest>
-) -> Result<Json<Todo>, StatusCode> {
+) -> Result<Json<Todo>, (StatusCode, Json<serde_json::Value>)> {
+    if let Err(errors) = payload.validate() {
+        let error_messages: Vec<String> = errors
+            .field_errors()
+            .iter()
+            .flat_map(|(_, errors)| {
+                errors.iter().map(|e| {
+                    e.message
+                        .as_ref()
+                        .map(|m| m.to_string())
+                        .unwrap_or_else(|| "Invalid value".to_string())
+                })
+            })
+            .collect();
+
+        return Err((
+            StatusCode::BAD_REQUEST, Json(serde_json::json!({
+            "error": "Validation failed",
+            "details": error_messages
+            })),
+        ));
+    }
     match store.create(payload.title).await {
         Ok(todo) => Ok(Json(todo)),
-        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+        Err(_) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({
+                "error": "Failed to create todo"
+            })),
+        )),
     }
 }
 
@@ -59,11 +88,42 @@ async fn update_todo(
     State(store): State<TodoStore>,
     Path(id): Path<u32>,
     Json(payload): Json<UpdateTodoRequest>
-) -> Result<Json<Todo>, StatusCode> {
+) -> Result<Json<Todo>, (StatusCode, Json<serde_json::Value>)> {
+    if let Err(errors) = payload.validate() {
+        let error_messages: Vec<String> = errors
+            .field_errors()
+            .iter()
+            .flat_map(|(_, errors)| {
+                errors.iter().map(|e| {
+                    e.message
+                        .as_ref()
+                        .map(|m| m.to_string())
+                        .unwrap_or_else(|| "Invalid value".to_string())
+                })
+            })
+            .collect();
+
+        return Err((
+            StatusCode::BAD_REQUEST, Json(serde_json::json!({
+            "error": "Validation failed",
+            "details": error_messages
+            })),
+        ));
+    }
     match store.update(id, payload.title, payload.completed).await {
         Ok(Some(todo)) => Ok(Json(todo)),
-        Ok(None) => Err(StatusCode::NOT_FOUND),
-        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+        Ok(None) => Err((
+            StatusCode::NOT_FOUND,
+            Json(serde_json::json!({
+                "error": "Todo not found"
+            })),
+        )),
+        Err(_) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({
+                "error": "Failed to update todo"
+            })),
+        )),
     }
 }
 
