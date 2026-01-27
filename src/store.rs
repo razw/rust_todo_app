@@ -1,63 +1,99 @@
-use std::sync::{Arc, Mutex};
+use sqlx::sqlite::SqlitePool;
 use crate::models::Todo;
 
 #[derive(Clone)]
 pub struct TodoStore {
-  todos: Arc<Mutex<Vec<Todo>>>,
-  next_id: Arc<Mutex<u32>>,
+  pool: SqlitePool,
 }
 
 impl TodoStore {
-  pub fn new() -> Self {
-    Self {
-      todos: Arc::new(Mutex::new(Vec::new())),
-      next_id: Arc::new(Mutex::new(1)),
-    }
+  pub fn new(pool: SqlitePool) -> Self {
+    Self { pool }
   }
-  pub fn create(&self, title: String) -> Todo {
-    let mut next_id = self.next_id.lock().unwrap();
-    let id = *next_id;
-    *next_id += 1;
 
-    let todo = Todo {
+  pub async fn create(&self, title: String) -> Result<Todo, sqlx::Error> {
+    // SQLiteではRETURNING句が使えないので、INSERT後に取得
+    sqlx::query(
+      "INSERT INTO todos (title, completed) VALUES (?, ?)",
+    )
+    .bind(&title)
+    .bind(false)
+    .execute(&self.pool)
+    .await?;
+
+    // 最後に挿入されたIDを取得
+    let id = sqlx::query_scalar::<_, i64>(
+      "SELECT last_insert_rowid()"
+    )
+    .fetch_one(&self.pool)
+    .await?;
+
+    Ok(Todo {
       id,
       title,
       completed: false,
+    })
+  }
+
+  pub async fn get_all(&self) -> Result<Vec<Todo>, sqlx::Error> {
+    let todos = sqlx::query_as::<_, Todo>(
+      "SELECT id, title, completed FROM todos"
+    )
+    .fetch_all(&self.pool)
+    .await?;
+
+    Ok(todos)
+  }
+
+  pub async fn get_by_id(&self, id: u32) -> Result<Option<Todo>, sqlx::Error> {
+    let todo = sqlx::query_as::<_, Todo>(
+      "SELECT id, title, completed FROM todos WHERE id = ?"
+    )
+    .bind(id as i64)
+    .fetch_optional(&self.pool)
+    .await?;
+
+    Ok(todo)
+  }
+
+  pub async fn update(
+    &self,
+    id: u32,
+    title: Option<String>,
+    completed: Option<bool>
+  ) -> Result<Option<Todo>, sqlx::Error> {
+    let mut todo = match self.get_by_id(id).await? {
+      Some(t) => t,
+      None => return Ok(None),
     };
 
-    let mut todos = self.todos.lock().unwrap();
-    todos.push(todo.clone());
-    todo
-  }
-  pub fn get_all(&self) -> Vec<Todo> {
-    let todos = self.todos.lock().unwrap();
-    todos.clone()
-  }
-  pub fn get_by_id(&self, id: u32) -> Option<Todo> {
-    let todos = self.todos.lock().unwrap();
-    todos.iter().find(|todo| todo.id == id).cloned()
-  }
-  pub fn update(&self, id: u32, title: Option<String>, completed: Option<bool>) -> Option<Todo> {
-    let mut todos = self.todos.lock().unwrap();
-    if let Some(todo) = todos.iter_mut().find(|t| t.id == id) {
-      if let Some(new_title) = title {
-        todo.title = new_title;
-      }
-      if let Some(new_completed) = completed {
-        todo.completed = new_completed;
-      }
-      Some(todo.clone())
-    } else {
-      None
+    if let Some(new_title) = title {
+      todo.title = new_title;
     }
-  }
-  pub fn delete(&self, id: u32) -> bool {
-    let mut todos = self.todos.lock().unwrap();
-    if let Some(pos) = todos.iter().position(|todo| todo.id == id){
-      todos.remove(pos);
-      true
-    } else {
-      false
+    if let Some(new_completed) = completed {
+      todo.completed = new_completed;
     }
+
+    sqlx::query(
+      "UPDATE todos SET title = ?, completed = ? WHERE id = ?"
+    )
+    .bind(&todo.title)
+    .bind(todo.completed)
+    .bind(id as i64)
+    .execute(&self.pool)
+    .await?;
+
+    Ok(Some(todo))
+  }
+
+  pub async fn delete(&self, id: u32) -> Result<bool, sqlx::Error> {
+    let result = sqlx::query(
+      "DELETE FROM todos WHERE id = ?"
+    )
+    .bind(id as i64)
+    .execute(&self.pool)
+    .await?;
+
+    Ok(result.rows_affected() > 0)
   }
 }
