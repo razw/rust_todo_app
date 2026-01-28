@@ -6,7 +6,6 @@ use axum::Router;
 use sqlx::sqlite::{SqlitePoolOptions, SqliteConnectOptions};
 use std::str::FromStr;
 use store::TodoStore;
-use crate::handlers::*;
 
 // テスト用のアプリケーションを作成する関数
 pub async fn create_test_app() -> Router {
