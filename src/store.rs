@@ -13,7 +13,7 @@ impl TodoStore {
 
   pub async fn create(&self, title: String) -> Result<Todo, sqlx::Error> {
     // SQLiteではRETURNING句が使えないので、INSERT後に取得
-    sqlx::query(
+    let result = sqlx::query(
       "INSERT INTO todos (title, completed) VALUES (?, ?)",
     )
     .bind(&title)
@@ -22,11 +22,7 @@ impl TodoStore {
     .await?;
 
     // 最後に挿入されたIDを取得
-    let id = sqlx::query_scalar::<_, i64>(
-      "SELECT last_insert_rowid()"
-    )
-    .fetch_one(&self.pool)
-    .await?;
+    let id = result.last_insert_rowid();
 
     Ok(Todo {
       id,
