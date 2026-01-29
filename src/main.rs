@@ -1,5 +1,4 @@
 use rust_todo_app::create_app;
-use tracing_subscriber;
 
 #[tokio::main]
 async fn main() {
