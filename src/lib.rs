@@ -100,7 +100,9 @@ fn create_router(store: TodoStore) -> Router {
             tracing::debug!("request started");
         })
         .on_response(
-            |_response: &axum::http::Response<_>, latency: std::time::Duration, _span: &tracing::Span| {
+            |_response: &axum::http::Response<_>,
+             latency: std::time::Duration,
+             _span: &tracing::Span| {
                 tracing::info!(
                     latency = ?latency,
                     status = %_response.status(),
@@ -109,7 +111,9 @@ fn create_router(store: TodoStore) -> Router {
             },
         )
         .on_failure(
-            |_failure_class: ServerErrorsFailureClass, latency: std::time::Duration, _span: &tracing::Span| {
+            |_failure_class: ServerErrorsFailureClass,
+             latency: std::time::Duration,
+             _span: &tracing::Span| {
                 tracing::error!(
                     failure = ?_failure_class,
                     latency = ?latency,

@@ -6,8 +6,8 @@ use axum::{
     Json,
 };
 use serde::Deserialize;
+use tracing::{error, info, warn};
 use validator::Validate;
-use tracing::{info, warn, error};
 
 // リクエスト構造体もhandlers.rsに移動
 #[derive(Deserialize, Validate)]
