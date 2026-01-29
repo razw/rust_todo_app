@@ -8,7 +8,5 @@ async fn main() {
         .await
         .expect("Failed to bind to address");
     println!("Server running on http://127.0.0.1:3000");
-    axum::serve(listener, app)
-        .await
-        .expect("Server error");
+    axum::serve(listener, app).await.expect("Server error");
 }
