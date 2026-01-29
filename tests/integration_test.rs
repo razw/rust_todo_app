@@ -2,8 +2,8 @@ use axum::{
     body::Body,
     http::{Request, StatusCode},
 };
-use tower::util::ServiceExt;
 use rust_todo_app::create_test_app;
+use tower::util::ServiceExt;
 
 /// レスポンスボディをJSONとして取得するヘルパー
 async fn response_json(response: axum::response::Response) -> serde_json::Value {
