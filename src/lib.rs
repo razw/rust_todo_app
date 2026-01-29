@@ -6,6 +6,7 @@ use axum::Router;
 use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
 use std::str::FromStr;
 use store::TodoStore;
+use tower_http::cors::{Any, CorsLayer};
 
 // テスト用のアプリケーションを作成する関数
 pub async fn create_test_app() -> Router {
@@ -70,7 +71,19 @@ fn create_router(store: TodoStore) -> Router {
     use axum::{
         routing::{delete, get, post, put},
         Router,
-    }; // ハンドラー関数を別モジュールに移動する場合
+    };
+
+    // CORS設定
+    let cors = CorsLayer::new()
+        .allow_origin(Any) // 開発用: すべてのオリジンを許可。本番では .allow_origin(["http://localhost:3000"].map(|o| o.parse().unwrap())) などに変更
+        .allow_methods([
+            axum::http::Method::GET,
+            axum::http::Method::POST,
+            axum::http::Method::PUT,
+            axum::http::Method::DELETE,
+            axum::http::Method::OPTIONS,
+        ])
+        .allow_headers([axum::http::header::CONTENT_TYPE]);
 
     Router::new()
         .route("/", get(handler))
@@ -80,4 +93,5 @@ fn create_router(store: TodoStore) -> Router {
         .route("/todos/:id", put(update_todo))
         .route("/todos/:id", delete(delete_todo))
         .with_state(store)
+        .layer(cors)
 }
