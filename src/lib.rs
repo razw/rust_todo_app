@@ -6,7 +6,9 @@ use axum::Router;
 use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
 use std::str::FromStr;
 use store::TodoStore;
+use tower_http::classify::ServerErrorsFailureClass;
 use tower_http::cors::{Any, CorsLayer};
+use tower_http::trace::TraceLayer;
 
 // テスト用のアプリケーションを作成する関数
 pub async fn create_test_app() -> Router {
@@ -85,6 +87,41 @@ fn create_router(store: TodoStore) -> Router {
         ])
         .allow_headers([axum::http::header::CONTENT_TYPE]);
 
+    // ログ設定（HTTPリクエスト/レスポンスを自動ログ）
+    let trace_layer = TraceLayer::new_for_http()
+        .make_span_with(|request: &axum::http::Request<_>| {
+            tracing::info_span!(
+                "http_request",
+                method = %request.method(),
+                uri = %request.uri(),
+            )
+        })
+        .on_request(|_request: &axum::http::Request<_>, _span: &tracing::Span| {
+            tracing::debug!("request started");
+        })
+        .on_response(
+            |_response: &axum::http::Response<_>,
+             latency: std::time::Duration,
+             _span: &tracing::Span| {
+                tracing::info!(
+                    latency = ?latency,
+                    status = %_response.status(),
+                    "request completed"
+                );
+            },
+        )
+        .on_failure(
+            |_failure_class: ServerErrorsFailureClass,
+             latency: std::time::Duration,
+             _span: &tracing::Span| {
+                tracing::error!(
+                    failure = ?_failure_class,
+                    latency = ?latency,
+                    "request failed"
+                );
+            },
+        );
+
     Router::new()
         .route("/", get(handler))
         .route("/todos", get(get_todos))
@@ -94,4 +131,5 @@ fn create_router(store: TodoStore) -> Router {
         .route("/todos/:id", delete(delete_todo))
         .with_state(store)
         .layer(cors)
+        .layer(trace_layer)
 }
