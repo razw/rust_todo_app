@@ -44,7 +44,7 @@ impl TodoStore {
 
     pub async fn get_all(&self) -> Result<Vec<Todo>, sqlx::Error> {
         let todos = sqlx::query_as::<_, Todo>(
-            "SELECT id, title, completed FROM todos ORDER BY position ASC"
+            "SELECT id, title, completed, position FROM todos ORDER BY position ASC"
         )
         .fetch_all(&self.pool)
         .await?;
@@ -102,7 +102,7 @@ impl TodoStore {
 
     pub async fn reorder(&self, todo_ids: Vec<i64>) -> Result<(), sqlx::Error> {
         for (index, id) in todo_ids.iter().enumerate() {
-            sqlx::query("UPDATE todos SET postion = ? WHERE id = ?")
+            sqlx::query("UPDATE todos SET position = ? WHERE id = ?")
                 .bind(index as i64)
                 .bind(id)
                 .execute(&self.pool)

@@ -212,6 +212,65 @@ async fn test_delete_todo_not_found() {
 }
 
 #[tokio::test]
+async fn test_reorder_todos() {
+    let app = create_test_app().await;
+
+    // TODOを3件作成
+    let mut ids = Vec::new();
+    for title in ["一番目", "二番目", "三番目"] {
+        let request = Request::builder()
+            .method("POST")
+            .uri("/todos")
+            .header("content-type", "application/json")
+            .body(Body::from(serde_json::json!({"title": title}).to_string()))
+            .unwrap();
+        let response = app.clone().oneshot(request).await.unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+        let created = response_json(response).await;
+        ids.push(created["id"].as_i64().unwrap());
+    }
+
+    // 順序を逆に並べ替え（三番目, 二番目, 一番目）
+    let reorder_request = Request::builder()
+        .method("PUT")
+        .uri("/todos/reorder")
+        .header("content-type", "application/json")
+        .body(Body::from(serde_json::json!({ "ids": [ids[2], ids[1], ids[0]] }).to_string()))
+        .unwrap();
+    let reorder_response = app.clone().oneshot(reorder_request).await.unwrap();
+    assert_eq!(reorder_response.status(), StatusCode::OK);
+
+    // 一覧取得して順序を確認
+    let get_request = Request::builder()
+        .method("GET")
+        .uri("/todos")
+        .body(Body::empty())
+        .unwrap();
+    let get_response = app.oneshot(get_request).await.unwrap();
+    assert_eq!(get_response.status(), StatusCode::OK);
+
+    let todos: Vec<serde_json::Value> = response_json(get_response).await.as_array().unwrap().clone();
+    assert_eq!(todos.len(), 3);
+    assert_eq!(todos[0]["title"], "三番目");
+    assert_eq!(todos[1]["title"], "二番目");
+    assert_eq!(todos[2]["title"], "一番目");
+}
+
+#[tokio::test]
+async fn test_reorder_todos_empty_ids() {
+    let app = create_test_app().await;
+
+    let request = Request::builder()
+        .method("PUT")
+        .uri("/todos/reorder")
+        .header("content-type", "application/json")
+        .body(Body::from(r#"{"ids": []}"#))
+        .unwrap();
+    let response = app.oneshot(request).await.unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+}
+
+#[tokio::test]
 async fn test_validation_error_empty_title() {
     let app = create_test_app().await;
 

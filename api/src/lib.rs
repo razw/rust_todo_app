@@ -25,7 +25,7 @@ pub async fn create_test_app() -> Router {
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             title TEXT NOT NULL,
             completed BOOLEAN NOT NULL DEFAULT 0,
-            position INTEGER NOT NULL DEFAULT 0,
+            position INTEGER NOT NULL DEFAULT 0
         )
         "#,
     )
