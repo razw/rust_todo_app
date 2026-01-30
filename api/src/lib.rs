@@ -56,7 +56,8 @@ pub async fn create_app(database_url: &str) -> Router {
         CREATE TABLE IF NOT EXISTS todos (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             title TEXT NOT NULL,
-            completed BOOLEAN NOT NULL DEFAULT 0
+            completed BOOLEAN NOT NULL DEFAULT 0,
+            position INTEGER NOT NULL DEFAULT 0
         )
         "#,
     )
