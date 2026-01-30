@@ -11,8 +11,11 @@ env:
 
 jobs:
   test:
-    name: Test
+    name: Test API
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: api
     steps:
       - uses: actions/checkout@v4
 
@@ -29,8 +32,8 @@ jobs:
             ~/.cargo/registry/index/
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+            api/target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('api/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-
       
