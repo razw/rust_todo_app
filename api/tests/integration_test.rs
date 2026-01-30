@@ -235,7 +235,9 @@ async fn test_reorder_todos() {
         .method("PUT")
         .uri("/todos/reorder")
         .header("content-type", "application/json")
-        .body(Body::from(serde_json::json!({ "ids": [ids[2], ids[1], ids[0]] }).to_string()))
+        .body(Body::from(
+            serde_json::json!({ "ids": [ids[2], ids[1], ids[0]] }).to_string(),
+        ))
         .unwrap();
     let reorder_response = app.clone().oneshot(reorder_request).await.unwrap();
     assert_eq!(reorder_response.status(), StatusCode::OK);
@@ -249,7 +251,11 @@ async fn test_reorder_todos() {
     let get_response = app.oneshot(get_request).await.unwrap();
     assert_eq!(get_response.status(), StatusCode::OK);
 
-    let todos: Vec<serde_json::Value> = response_json(get_response).await.as_array().unwrap().clone();
+    let todos: Vec<serde_json::Value> = response_json(get_response)
+        .await
+        .as_array()
+        .unwrap()
+        .clone();
     assert_eq!(todos.len(), 3);
     assert_eq!(todos[0]["title"], "三番目");
     assert_eq!(todos[1]["title"], "二番目");

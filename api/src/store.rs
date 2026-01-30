@@ -13,23 +13,19 @@ impl TodoStore {
 
     pub async fn create(&self, title: String) -> Result<Todo, sqlx::Error> {
         // 最大positionを取得
-        let max_position: Option<i64> = sqlx::query_scalar(
-            "SELECT MAX(position) FROM todos"
-        )
-        .fetch_one(&self.pool)
-        .await?;
+        let max_position: Option<i64> = sqlx::query_scalar("SELECT MAX(position) FROM todos")
+            .fetch_one(&self.pool)
+            .await?;
 
         let new_position = max_position.unwrap_or(0) + 1;
 
         // SQLiteではRETURNING句が使えないので、INSERT後に取得
-        let result = sqlx::query(
-            "INSERT INTO todos (title, completed, position) VALUES (?, ?, ?)"
-        )
-        .bind(&title)
-        .bind(false)
-        .bind(new_position)
-        .execute(&self.pool)
-        .await?;
+        let result = sqlx::query("INSERT INTO todos (title, completed, position) VALUES (?, ?, ?)")
+            .bind(&title)
+            .bind(false)
+            .bind(new_position)
+            .execute(&self.pool)
+            .await?;
 
         // 最後に挿入されたIDを取得
         let id = result.last_insert_rowid();
@@ -44,7 +40,7 @@ impl TodoStore {
 
     pub async fn get_all(&self) -> Result<Vec<Todo>, sqlx::Error> {
         let todos = sqlx::query_as::<_, Todo>(
-            "SELECT id, title, completed, position FROM todos ORDER BY position ASC"
+            "SELECT id, title, completed, position FROM todos ORDER BY position ASC",
         )
         .fetch_all(&self.pool)
         .await?;
@@ -54,7 +50,7 @@ impl TodoStore {
 
     pub async fn get_by_id(&self, id: u32) -> Result<Option<Todo>, sqlx::Error> {
         let todo = sqlx::query_as::<_, Todo>(
-            "SELECT id, title, completed, position FROM todos WHERE id = ?"
+            "SELECT id, title, completed, position FROM todos WHERE id = ?",
         )
         .bind(id as i64)
         .fetch_optional(&self.pool)
