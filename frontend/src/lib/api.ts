@@ -50,3 +50,16 @@ export async function deleteTodo(id: number): Promise<void> {
     throw new Error('Failed to delete todo');
   }
 }
+
+export async function reorderTodos(ids: number[]): Promise<void> {
+  const response = await fetch(`${API_URL}/todos/reorder`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ ids })
+  });
+  if (!response.ok) {
+    throw new Error('Failed to reorder todos')
+  }
+}

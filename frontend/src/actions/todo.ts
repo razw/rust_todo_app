@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createTodo } from "@/lib/api";
 import { updateTodo } from "@/lib/api";
 import { deleteTodo } from "@/lib/api";
+import { reorderTodos } from "@/lib/api";
 
 export async function addTodoAction(formData: FormData) {
   const title = formData.get('title') as string;
@@ -38,5 +39,15 @@ export async function deleteTodoAction(id: number) {
     return { success: true };
   } catch (error) {
     return { error: 'TODOの削除に失敗しました' }
+  }
+}
+
+export async function reorderTodosAction(ids: number[]) {
+  try {
+    await reorderTodos(ids);
+    revalidatePath('/');
+    return { success: true };
+  } catch (error) {
+    return { error: '並び替えに失敗しました' }
   }
 }

@@ -24,7 +24,8 @@ pub async fn create_test_app() -> Router {
         CREATE TABLE todos (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             title TEXT NOT NULL,
-            completed BOOLEAN NOT NULL DEFAULT 0
+            completed BOOLEAN NOT NULL DEFAULT 0,
+            position INTEGER NOT NULL DEFAULT 0
         )
         "#,
     )
@@ -55,7 +56,8 @@ pub async fn create_app(database_url: &str) -> Router {
         CREATE TABLE IF NOT EXISTS todos (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             title TEXT NOT NULL,
-            completed BOOLEAN NOT NULL DEFAULT 0
+            completed BOOLEAN NOT NULL DEFAULT 0,
+            position INTEGER NOT NULL DEFAULT 0
         )
         "#,
     )
@@ -126,6 +128,7 @@ fn create_router(store: TodoStore) -> Router {
         .route("/", get(handler))
         .route("/todos", get(get_todos))
         .route("/todos", post(create_todo))
+        .route("/todos/reorder", put(reorder_todos))
         .route("/todos/:id", get(get_todo_by_id))
         .route("/todos/:id", put(update_todo))
         .route("/todos/:id", delete(delete_todo))

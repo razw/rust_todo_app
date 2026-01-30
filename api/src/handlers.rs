@@ -31,6 +31,11 @@ pub struct UpdateTodoRequest {
     pub completed: Option<bool>,
 }
 
+#[derive(Deserialize)]
+pub struct ReorderRequest {
+    pub ids: Vec<i64>,
+}
+
 pub async fn handler() -> &'static str {
     "Hello, World!"
 }
@@ -177,6 +182,23 @@ pub async fn delete_todo(
         }
         Err(e) => {
             error!("DELETE /todos/{}: database error: {:?}", id, e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
+    }
+}
+
+pub async fn reorder_todos(
+    State(store): State<TodoStore>,
+    Json(payload): Json<ReorderRequest>,
+) -> Result<StatusCode, StatusCode> {
+    info!("PUT /todos/reorder: reordering todos");
+    match store.reorder(payload.ids).await {
+        Ok(_) => {
+            info!("PUT /todos/reorder: todos reordered successfully");
+            Ok(StatusCode::OK)
+        }
+        Err(e) => {
+            error!("PUT /todos/reorder: database error: {:?}", e);
             Err(StatusCode::INTERNAL_SERVER_ERROR)
         }
     }
