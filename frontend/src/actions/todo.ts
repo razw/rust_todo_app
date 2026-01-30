@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createTodo } from "@/lib/api";
 import { updateTodo } from "@/lib/api";
+import { deleteTodo } from "@/lib/api";
 
 export async function addTodoAction(formData: FormData) {
   const title = formData.get('title') as string;
@@ -27,5 +28,15 @@ export async function toggleTodoAction(id: number, completed: boolean) {
     return { success: true };
   } catch(error) {
     return { error: 'TODOの更新に失敗しました' };
+  }
+}
+
+export async function deleteTodoAction(id: number) {
+  try {
+    await deleteTodo(id);
+    revalidatePath('/');
+    return { success: true };
+  } catch (error) {
+    return { error: 'TODOの削除に失敗しました' }
   }
 }
