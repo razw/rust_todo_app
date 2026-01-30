@@ -24,3 +24,20 @@ export async function createTodo(title: string): Promise<Todo> {
 
   return response.json();
 }
+
+export async function updateTodo(
+  id: number,
+  data: { title?: string; completed?: boolean }
+): Promise<Todo> {
+  const response = await fetch(`${API_URL}/todos/${id}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data)
+  });
+  if (!response.ok) {
+    throw new Error('Failed to update todo');
+  }
+  return response.json();
+}
