@@ -2,6 +2,9 @@ import { getTodos } from "@/lib/api";
 import { TodoList } from "@/components/TodoList";
 import { TodoForm } from "@/components/TodoForm";
 
+// API に依存するためビルド時プリレンダをスキップ（CI で API が無いため）
+export const dynamic = "force-dynamic";
+
 export default async function Home() {
   const todos = await getTodos();
 
