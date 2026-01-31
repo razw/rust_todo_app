@@ -1,11 +1,12 @@
-use crate::domain::entities::todo::Todo;
 use crate::application::ports::todo_repository::TodoRepository;
+use crate::application::errors::AppError;
+use crate::domain::entities::todo::Todo;
 
 pub async fn execute(
     repo: &dyn TodoRepository,
     id: u32,
     title: Option<String>,
     completed: Option<bool>,
-) -> Result<Option<Todo>, sqlx::Error> {
+) -> Result<Option<Todo>, AppError> {
     repo.update(id, title, completed).await
 }

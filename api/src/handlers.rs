@@ -6,6 +6,7 @@ use crate::presentation::dto::todo_requests::{
 };
 use std::sync::Arc;
 
+use crate::application::errors::AppError;
 use crate::application::ports::todo_repository::TodoRepository;
 use crate::application::usecases::todo::{
     create as create_todo,
@@ -52,8 +53,8 @@ pub async fn get_todo_by_id(
             Err(StatusCode::NOT_FOUND)
         }
         Err(e) => {
-            error!("GET /todos/{}: database error: {:?}", id, e);
-            Err(StatusCode::INTERNAL_SERVER_ERROR)
+            error!("GET /todos/{}: repository error: {:?}", id, e);
+            Err(app_error_status(&e))
         }
     }
 }
@@ -92,12 +93,7 @@ pub async fn create_todo(
         }
         Err(e) => {
             error!("POST /todos: failed to create todo: {:?}", e);
-            Err((
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({
-                    "error": "Failed to create todo"
-                })),
-            ))
+            Err(app_error_response(&e))
         }
     }
 }
@@ -151,13 +147,8 @@ pub async fn update_todo(
             ))
         }
         Err(e) => {
-            error!("PUT /todos/{}: database error: {:?}", id, e);
-            Err((
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({
-                    "error": "Failed to update todo"
-                })),
-            ))
+            error!("PUT /todos/{}: repository error: {:?}", id, e);
+            Err(app_error_response(&e))
         }
     }
 }
@@ -177,8 +168,8 @@ pub async fn delete_todo(
             Err(StatusCode::NOT_FOUND)
         }
         Err(e) => {
-            error!("DELETE /todos/{}: database error: {:?}", id, e);
-            Err(StatusCode::INTERNAL_SERVER_ERROR)
+            error!("DELETE /todos/{}: repository error: {:?}", id, e);
+            Err(app_error_status(&e))
         }
     }
 }
@@ -194,8 +185,40 @@ pub async fn reorder_todos(
             Ok(StatusCode::OK)
         }
         Err(e) => {
-            error!("PUT /todos/reorder: database error: {:?}", e);
-            Err(StatusCode::INTERNAL_SERVER_ERROR)
+            error!("PUT /todos/reorder: repository error: {:?}", e);
+            Err(app_error_status(&e))
         }
+    }
+}
+
+fn app_error_status(error: &AppError) -> StatusCode {
+    match error {
+        AppError::Validation(_) => StatusCode::BAD_REQUEST,
+        AppError::NotFound => StatusCode::NOT_FOUND,
+        AppError::Unexpected(_) => StatusCode::INTERNAL_SERVER_ERROR,
+    }
+}
+
+fn app_error_response(error: &AppError) -> (StatusCode, Json<serde_json::Value>) {
+    match error {
+        AppError::Validation(message) => (
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({
+                "error": "Validation failed",
+                "details": [message],
+            })),
+        ),
+        AppError::NotFound => (
+            StatusCode::NOT_FOUND,
+            Json(serde_json::json!({
+                "error": "Todo not found",
+            })),
+        ),
+        AppError::Unexpected(_) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({
+                "error": "Unexpected error",
+            })),
+        ),
     }
 }
