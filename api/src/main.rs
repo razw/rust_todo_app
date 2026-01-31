@@ -11,9 +11,11 @@ async fn main() {
         )
         .init();
 
-    let app = create_app("sqlite:todos.db").await;
+    let database_url =
+        std::env::var("DATABASE_URL").unwrap_or_else(|_| "sqlite:todos.db".to_string());
+    let app = create_app(&database_url).await;
 
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:3000")
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000")
         .await
         .expect("Failed to bind to address");
 
