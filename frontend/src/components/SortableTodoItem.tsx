@@ -15,7 +15,7 @@ export function SortableTodoItem({ todo }: SortableTodoItemProps) {
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
-    setIsMounted(true);
+    queueMicrotask(() => setIsMounted(true));
   }, []);
 
   const {
