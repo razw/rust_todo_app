@@ -1330,6 +1330,7 @@ dependencies = [
 name = "rust_todo_app"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "axum",
  "serde",
  "serde_json",

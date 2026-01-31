@@ -1,3 +1,6 @@
+use async_trait::async_trait;
+
+use crate::application::ports::todo_repository::TodoRepository;
 use crate::domain::entities::todo::Todo;
 use crate::infrastructure::persistence::db_todo::DbTodo;
 use sqlx::sqlite::SqlitePool;
@@ -12,7 +15,7 @@ impl TodoStore {
         Self { pool }
     }
 
-    pub async fn create(&self, title: String) -> Result<Todo, sqlx::Error> {
+    async fn create_inner(&self, title: String) -> Result<Todo, sqlx::Error> {
         // 最大positionを取得
         let max_position: Option<i64> = sqlx::query_scalar("SELECT MAX(position) FROM todos")
             .fetch_one(&self.pool)
@@ -39,7 +42,7 @@ impl TodoStore {
         })
     }
 
-    pub async fn get_all(&self) -> Result<Vec<Todo>, sqlx::Error> {
+    async fn get_all_inner(&self) -> Result<Vec<Todo>, sqlx::Error> {
         let rows = sqlx::query_as::<_, DbTodo>(
             "SELECT id, title, completed, position FROM todos ORDER BY position ASC",
         )
@@ -49,7 +52,7 @@ impl TodoStore {
         Ok(rows.into_iter().map(Into::into).collect())
     }
 
-    pub async fn get_by_id(&self, id: u32) -> Result<Option<Todo>, sqlx::Error> {
+    async fn get_by_id_inner(&self, id: u32) -> Result<Option<Todo>, sqlx::Error> {
         let row = sqlx::query_as::<_, DbTodo>(
             "SELECT id, title, completed, position FROM todos WHERE id = ?",
         )
@@ -60,13 +63,13 @@ impl TodoStore {
         Ok(row.map(Into::into))
     }
 
-    pub async fn update(
+    async fn update_inner(
         &self,
         id: u32,
         title: Option<String>,
         completed: Option<bool>,
     ) -> Result<Option<Todo>, sqlx::Error> {
-        let mut todo = match self.get_by_id(id).await? {
+        let mut todo = match self.get_by_id_inner(id).await? {
             Some(t) => t,
             None => return Ok(None),
         };
@@ -88,7 +91,7 @@ impl TodoStore {
         Ok(Some(todo))
     }
 
-    pub async fn delete(&self, id: u32) -> Result<bool, sqlx::Error> {
+    async fn delete_inner(&self, id: u32) -> Result<bool, sqlx::Error> {
         let result = sqlx::query("DELETE FROM todos WHERE id = ?")
             .bind(id as i64)
             .execute(&self.pool)
@@ -97,7 +100,7 @@ impl TodoStore {
         Ok(result.rows_affected() > 0)
     }
 
-    pub async fn reorder(&self, todo_ids: Vec<i64>) -> Result<(), sqlx::Error> {
+    async fn reorder_inner(&self, todo_ids: Vec<i64>) -> Result<(), sqlx::Error> {
         for (index, id) in todo_ids.iter().enumerate() {
             sqlx::query("UPDATE todos SET position = ? WHERE id = ?")
                 .bind(index as i64)
@@ -106,5 +109,37 @@ impl TodoStore {
                 .await?;
         }
         Ok(())
+    }
+}
+
+#[async_trait]
+impl TodoRepository for TodoStore {
+    async fn create(&self, title: String) -> Result<Todo, sqlx::Error> {
+        self.create_inner(title).await
+    }
+
+    async fn get_all(&self) -> Result<Vec<Todo>, sqlx::Error> {
+        self.get_all_inner().await
+    }
+
+    async fn get_by_id(&self, id: u32) -> Result<Option<Todo>, sqlx::Error> {
+        self.get_by_id_inner(id).await
+    }
+
+    async fn update(
+        &self,
+        id: u32,
+        title: Option<String>,
+        completed: Option<bool>,
+    ) -> Result<Option<Todo>, sqlx::Error> {
+        self.update_inner(id, title, completed).await
+    }
+
+    async fn delete(&self, id: u32) -> Result<bool, sqlx::Error> {
+        self.delete_inner(id).await
+    }
+
+    async fn reorder(&self, todo_ids: Vec<i64>) -> Result<(), sqlx::Error> {
+        self.reorder_inner(todo_ids).await
     }
 }

@@ -4,7 +4,17 @@ use crate::presentation::dto::todo_requests::{
     UpdateTodoRequest,
     ReorderRequest,
 };
-use crate::infrastructure::persistence::sqlite_todo_repo::TodoStore;
+use std::sync::Arc;
+
+use crate::application::ports::todo_repository::TodoRepository;
+use crate::application::usecases::todo::{
+    create as create_todo,
+    list as list_todos,
+    get as get_todo,
+    update as update_todo_usecase,
+    delete as delete_todo_usecase,
+    reorder as reorder_todos_usecase,
+};
 use axum::{
     extract::{Path, State},
     http::StatusCode,
@@ -17,20 +27,22 @@ pub async fn handler() -> &'static str {
     "Hello, World!"
 }
 
-pub async fn get_todos(State(store): State<TodoStore>) -> Json<Vec<TodoResponse>> {
+pub async fn get_todos(
+    State(repo): State<Arc<dyn TodoRepository>>,
+) -> Json<Vec<TodoResponse>> {
     info!("GET /todos: fetching all todos");
-    let todos = store.get_all().await.unwrap();
+    let todos = list_todos::execute(repo.as_ref()).await.unwrap();
     info!("GET /todos: returned {} todo(s)", todos.len());
     let responses: Vec<TodoResponse> = todos.into_iter().map(Into::into).collect();
     Json(responses)
 }
 
 pub async fn get_todo_by_id(
-    State(store): State<TodoStore>,
+    State(repo): State<Arc<dyn TodoRepository>>,
     Path(id): Path<u32>,
 ) -> Result<Json<TodoResponse>, StatusCode> {
     info!("GET /todos/{}: fetching todo by id", id);
-    match store.get_by_id(id).await {
+    match get_todo::execute(repo.as_ref(), id).await {
         Ok(Some(todo)) => {
             info!("GET /todos/{}: todo found", id);
             Ok(Json(todo.into()))
@@ -47,7 +59,7 @@ pub async fn get_todo_by_id(
 }
 
 pub async fn create_todo(
-    State(store): State<TodoStore>,
+    State(repo): State<Arc<dyn TodoRepository>>,
     Json(payload): Json<CreateTodoRequest>,
 ) -> Result<Json<TodoResponse>, (StatusCode, Json<serde_json::Value>)> {
     info!("POST /todos: creating todo with title: {}", payload.title);
@@ -73,7 +85,7 @@ pub async fn create_todo(
             })),
         ));
     }
-    match store.create(payload.title).await {
+    match create_todo::execute(repo.as_ref(), payload.title).await {
         Ok(todo) => {
             info!("POST /todos: todo created successfully, id={}", todo.id);
             Ok(Json(todo.into()))
@@ -91,7 +103,7 @@ pub async fn create_todo(
 }
 
 pub async fn update_todo(
-    State(store): State<TodoStore>,
+    State(repo): State<Arc<dyn TodoRepository>>,
     Path(id): Path<u32>,
     Json(payload): Json<UpdateTodoRequest>,
 ) -> Result<Json<TodoResponse>, (StatusCode, Json<serde_json::Value>)> {
@@ -118,7 +130,13 @@ pub async fn update_todo(
             })),
         ));
     }
-    match store.update(id, payload.title, payload.completed).await {
+    match update_todo_usecase::execute(
+        repo.as_ref(),
+        id,
+        payload.title,
+        payload.completed,
+    )
+    .await {
         Ok(Some(todo)) => {
             info!("PUT /todos/{}: todo updated successfully", id);
             Ok(Json(todo.into()))
@@ -145,11 +163,11 @@ pub async fn update_todo(
 }
 
 pub async fn delete_todo(
-    State(store): State<TodoStore>,
+    State(repo): State<Arc<dyn TodoRepository>>,
     Path(id): Path<u32>,
 ) -> Result<StatusCode, StatusCode> {
     info!("DELETE /todos/{}: deleting todo", id);
-    match store.delete(id).await {
+    match delete_todo_usecase::execute(repo.as_ref(), id).await {
         Ok(true) => {
             info!("DELETE /todos/{}: todo deleted successfully", id);
             Ok(StatusCode::NO_CONTENT)
@@ -166,11 +184,11 @@ pub async fn delete_todo(
 }
 
 pub async fn reorder_todos(
-    State(store): State<TodoStore>,
+    State(repo): State<Arc<dyn TodoRepository>>,
     Json(payload): Json<ReorderRequest>,
 ) -> Result<StatusCode, StatusCode> {
     info!("PUT /todos/reorder: reordering todos");
-    match store.reorder(payload.ids).await {
+    match reorder_todos_usecase::execute(repo.as_ref(), payload.ids).await {
         Ok(_) => {
             info!("PUT /todos/reorder: todos reordered successfully");
             Ok(StatusCode::OK)
