@@ -1,6 +1,11 @@
 import { Todo } from '@/types/todo';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+const API_URL =
+  typeof window === 'undefined'
+    ? process.env.API_URL ||
+      process.env.NEXT_PUBLIC_API_URL ||
+      'http://localhost:3000'
+    : process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
 export async function getTodos(): Promise<Todo[]> {
   const response = await fetch(`${API_URL}/todos`);

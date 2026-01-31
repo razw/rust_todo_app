@@ -1,9 +1,13 @@
-FROM rust:1.79-slim AS builder
+FROM rust:1.85-slim AS builder
 
 WORKDIR /app
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends pkg-config libsqlite3-dev ca-certificates \
+    && apt-get install -y --no-install-recommends \
+        pkg-config \
+        libsqlite3-dev \
+        libssl-dev \
+        ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 COPY Cargo.toml Cargo.lock ./
