@@ -17,7 +17,7 @@ export async function addTodoAction(formData: FormData) {
     await createTodo(title.trim());
     revalidatePath('/');
     return { success: true };
-  } catch(error) {
+  } catch {
     return { error: 'TODOの作成に失敗しました' }
   }
 }
@@ -27,7 +27,7 @@ export async function toggleTodoAction(id: number, completed: boolean) {
     await updateTodo(id, { completed });
     revalidatePath('/');
     return { success: true };
-  } catch(error) {
+  } catch {
     return { error: 'TODOの更新に失敗しました' };
   }
 }
@@ -37,7 +37,7 @@ export async function deleteTodoAction(id: number) {
     await deleteTodo(id);
     revalidatePath('/');
     return { success: true };
-  } catch (error) {
+  } catch {
     return { error: 'TODOの削除に失敗しました' }
   }
 }
@@ -47,7 +47,7 @@ export async function reorderTodosAction(ids: number[]) {
     await reorderTodos(ids);
     revalidatePath('/');
     return { success: true };
-  } catch (error) {
+  } catch {
     return { error: '並び替えに失敗しました' }
   }
 }
