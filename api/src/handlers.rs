@@ -4,7 +4,7 @@ use crate::presentation::dto::todo_requests::{
     UpdateTodoRequest,
     ReorderRequest,
 };
-use crate::store::TodoStore;
+use crate::infrastructure::persistence::sqlite_todo_repo::TodoStore;
 use axum::{
     extract::{Path, State},
     http::StatusCode,

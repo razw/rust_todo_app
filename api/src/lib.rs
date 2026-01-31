@@ -2,12 +2,11 @@ pub mod handlers;
 pub mod domain;
 pub mod infrastructure;
 pub mod presentation;
-pub mod store;
 
 use axum::Router;
 use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
 use std::str::FromStr;
-use store::TodoStore;
+use crate::infrastructure::persistence::sqlite_todo_repo::TodoStore;
 use tower_http::classify::ServerErrorsFailureClass;
 use tower_http::cors::{Any, CorsLayer};
 use tower_http::trace::TraceLayer;
