@@ -1,15 +1,15 @@
-pub mod handlers;
 pub mod application;
 pub mod domain;
+pub mod handlers;
 pub mod infrastructure;
 pub mod presentation;
 
+use crate::application::ports::todo_repository::TodoRepository;
+use crate::infrastructure::persistence::sqlite_todo_repo::TodoStore;
 use axum::Router;
 use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
 use std::str::FromStr;
 use std::sync::Arc;
-use crate::application::ports::todo_repository::TodoRepository;
-use crate::infrastructure::persistence::sqlite_todo_repo::TodoStore;
 use tower_http::classify::ServerErrorsFailureClass;
 use tower_http::cors::{Any, CorsLayer};
 use tower_http::trace::TraceLayer;

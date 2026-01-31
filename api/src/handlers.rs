@@ -1,20 +1,14 @@
-use crate::presentation::dto::todo_responses::TodoResponse;
 use crate::presentation::dto::todo_requests::{
-    CreateTodoRequest,
-    UpdateTodoRequest,
-    ReorderRequest,
+    CreateTodoRequest, ReorderRequest, UpdateTodoRequest,
 };
+use crate::presentation::dto::todo_responses::TodoResponse;
 use std::sync::Arc;
 
 use crate::application::errors::AppError;
 use crate::application::ports::todo_repository::TodoRepository;
 use crate::application::usecases::todo::{
-    create as create_todo,
-    list as list_todos,
-    get as get_todo,
-    update as update_todo_usecase,
-    delete as delete_todo_usecase,
-    reorder as reorder_todos_usecase,
+    create as create_todo, delete as delete_todo_usecase, get as get_todo, list as list_todos,
+    reorder as reorder_todos_usecase, update as update_todo_usecase,
 };
 use axum::{
     extract::{Path, State},
@@ -28,9 +22,7 @@ pub async fn handler() -> &'static str {
     "Hello, World!"
 }
 
-pub async fn get_todos(
-    State(repo): State<Arc<dyn TodoRepository>>,
-) -> Json<Vec<TodoResponse>> {
+pub async fn get_todos(State(repo): State<Arc<dyn TodoRepository>>) -> Json<Vec<TodoResponse>> {
     info!("GET /todos: fetching all todos");
     let todos = list_todos::execute(repo.as_ref()).await.unwrap();
     info!("GET /todos: returned {} todo(s)", todos.len());
@@ -126,13 +118,7 @@ pub async fn update_todo(
             })),
         ));
     }
-    match update_todo_usecase::execute(
-        repo.as_ref(),
-        id,
-        payload.title,
-        payload.completed,
-    )
-    .await {
+    match update_todo_usecase::execute(repo.as_ref(), id, payload.title, payload.completed).await {
         Ok(Some(todo)) => {
             info!("PUT /todos/{}: todo updated successfully", id);
             Ok(Json(todo.into()))
