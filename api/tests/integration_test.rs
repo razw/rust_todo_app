@@ -295,6 +295,55 @@ async fn test_validation_error_empty_title() {
 }
 
 #[tokio::test]
+async fn test_validation_error_too_long_title() {
+    let app = create_test_app().await;
+
+    let long_title = "a".repeat(201);
+    let request = Request::builder()
+        .method("POST")
+        .uri("/todos")
+        .header("content-type", "application/json")
+        .body(Body::from(
+            serde_json::json!({ "title": long_title }).to_string(),
+        ))
+        .unwrap();
+    let response = app.oneshot(request).await.unwrap();
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+    let error = response_json(response).await;
+    assert_eq!(error["error"], "Validation failed");
+    assert!(error["details"].is_array());
+}
+
+#[tokio::test]
+async fn test_update_validation_error_empty_title() {
+    let app = create_test_app().await;
+
+    let create_request = Request::builder()
+        .method("POST")
+        .uri("/todos")
+        .header("content-type", "application/json")
+        .body(Body::from(r#"{"title": "更新用"}"#))
+        .unwrap();
+    let create_response = app.clone().oneshot(create_request).await.unwrap();
+    let created = response_json(create_response).await;
+    let id = created["id"].as_i64().unwrap();
+
+    let request = Request::builder()
+        .method("PUT")
+        .uri(format!("/todos/{}", id))
+        .header("content-type", "application/json")
+        .body(Body::from(r#"{"title": ""}"#))
+        .unwrap();
+    let response = app.oneshot(request).await.unwrap();
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+    let error = response_json(response).await;
+    assert_eq!(error["error"], "Validation failed");
+    assert!(error["details"].is_array());
+}
+
+#[tokio::test]
 async fn test_handler_hello() {
     let app = create_test_app().await;
 
