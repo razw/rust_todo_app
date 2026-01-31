@@ -1,4 +1,4 @@
-use crate::models::Todo;
+use crate::domain::entities::todo::Todo;
 use crate::store::TodoStore;
 use axum::{
     extract::{Path, State},

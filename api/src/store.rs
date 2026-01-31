@@ -1,4 +1,5 @@
-use crate::models::Todo;
+use crate::domain::entities::todo::Todo;
+use crate::infrastructure::persistence::db_todo::DbTodo;
 use sqlx::sqlite::SqlitePool;
 
 #[derive(Clone)]
@@ -39,24 +40,24 @@ impl TodoStore {
     }
 
     pub async fn get_all(&self) -> Result<Vec<Todo>, sqlx::Error> {
-        let todos = sqlx::query_as::<_, Todo>(
+        let rows = sqlx::query_as::<_, DbTodo>(
             "SELECT id, title, completed, position FROM todos ORDER BY position ASC",
         )
         .fetch_all(&self.pool)
         .await?;
 
-        Ok(todos)
+        Ok(rows.into_iter().map(Into::into).collect())
     }
 
     pub async fn get_by_id(&self, id: u32) -> Result<Option<Todo>, sqlx::Error> {
-        let todo = sqlx::query_as::<_, Todo>(
+        let row = sqlx::query_as::<_, DbTodo>(
             "SELECT id, title, completed, position FROM todos WHERE id = ?",
         )
         .bind(id as i64)
         .fetch_optional(&self.pool)
         .await?;
 
-        Ok(todo)
+        Ok(row.map(Into::into))
     }
 
     pub async fn update(

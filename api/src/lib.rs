@@ -1,5 +1,6 @@
 pub mod handlers;
-pub mod models;
+pub mod domain;
+pub mod infrastructure;
 pub mod store;
 
 use axum::Router;
