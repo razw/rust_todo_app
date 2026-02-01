@@ -1,11 +1,15 @@
+pub mod application;
+pub mod domain;
 pub mod handlers;
-pub mod models;
-pub mod store;
+pub mod infrastructure;
+pub mod presentation;
 
+use crate::application::ports::todo_repository::TodoRepository;
+use crate::infrastructure::persistence::sqlite_todo_repo::TodoStore;
 use axum::Router;
 use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
 use std::str::FromStr;
-use store::TodoStore;
+use std::sync::Arc;
 use tower_http::classify::ServerErrorsFailureClass;
 use tower_http::cors::{Any, CorsLayer};
 use tower_http::trace::TraceLayer;
@@ -33,7 +37,7 @@ pub async fn create_test_app() -> Router {
     .await
     .unwrap();
 
-    let store = TodoStore::new(pool);
+    let store: Arc<dyn TodoRepository> = Arc::new(TodoStore::new(pool));
 
     // ルーターを作成（main.rsから関数をインポート）
     create_router(store)
@@ -65,12 +69,12 @@ pub async fn create_app(database_url: &str) -> Router {
     .await
     .expect("Failed to create table");
 
-    let store = TodoStore::new(pool);
+    let store: Arc<dyn TodoRepository> = Arc::new(TodoStore::new(pool));
     create_router(store)
 }
 
 // ルーターを作成する共通関数
-fn create_router(store: TodoStore) -> Router {
+fn create_router(store: Arc<dyn TodoRepository>) -> Router {
     use crate::handlers::*;
     use axum::{
         routing::{delete, get, post, put},
