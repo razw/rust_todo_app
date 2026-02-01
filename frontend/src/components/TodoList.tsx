@@ -62,9 +62,15 @@ export function TodoList({ todos: initialTodos }: TodoListProps) {
 
   if (todos.length === 0) {
     return (
-      <p className="text-center text-gray-500">
-        TODOがありません
-      </p>
+      <div className="text-center py-12">
+        <div className="text-6xl mb-4">📝</div>
+        <p className="text-gray-500 text-lg">
+          TODOがありません
+        </p>
+        <p className="text-gray-400 text-sm mt-2">
+          上のフォームから新しいタスクを追加しましょう
+        </p>
+      </div>
     );
   }
 
@@ -75,7 +81,7 @@ export function TodoList({ todos: initialTodos }: TodoListProps) {
       onDragEnd={handleDragEnd}
     >
       <SortableContext items={todos.map((t) => t.id)} strategy={verticalListSortingStrategy}>
-        <div className="space-y-2">
+        <div className="space-y-3">
           {todos.map((todo) => (
             <SortableTodoItem key={todo.id} todo={todo} />
           ))}
