@@ -1,0 +1,25 @@
+services:
+  api:
+    build:
+      context: ./api
+    ports:
+      - "3100:3000"
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-sqlite:/data/todos_e2e.db}
+    volumes:
+      - api-data-e2e:/data
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3100}
+    ports:
+      - "3101:3001"
+    environment:
+      API_URL: ${API_URL:-http://api:3000}
+    depends_on:
+      - api
+
+volumes:
+  api-data-e2e:
