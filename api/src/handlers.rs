@@ -208,3 +208,186 @@ fn app_error_response(error: &AppError) -> (StatusCode, Json<serde_json::Value>)
         ),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::sync::{Arc, Mutex};
+
+    use async_trait::async_trait;
+    use axum::body::{to_bytes, Body};
+    use axum::http::{Request, StatusCode};
+    use axum::routing::{delete, post};
+    use axum::Router;
+    use tower::ServiceExt;
+
+    use super::{create_todo, delete_todo};
+    use crate::application::errors::AppError;
+    use crate::application::ports::todo_repository::TodoRepository;
+    use crate::domain::entities::todo::Todo;
+
+    struct FakeRepo {
+        created_title: Mutex<Option<String>>,
+        deleted_id: Mutex<Option<u32>>,
+        create_result: Result<Todo, AppError>,
+        delete_result: Result<bool, AppError>,
+    }
+
+    #[async_trait]
+    impl TodoRepository for FakeRepo {
+        async fn create(&self, title: String) -> Result<Todo, AppError> {
+            *self
+                .created_title
+                .lock()
+                .expect("failed to lock created_title") = Some(title);
+            self.create_result.clone()
+        }
+
+        async fn get_all(&self) -> Result<Vec<Todo>, AppError> {
+            unimplemented!("not needed for this test");
+        }
+
+        async fn get_by_id(&self, _id: u32) -> Result<Option<Todo>, AppError> {
+            unimplemented!("not needed for this test");
+        }
+
+        async fn update(
+            &self,
+            _id: u32,
+            _title: Option<String>,
+            _completed: Option<bool>,
+        ) -> Result<Option<Todo>, AppError> {
+            unimplemented!("not needed for this test");
+        }
+
+        async fn delete(&self, id: u32) -> Result<bool, AppError> {
+            *self.deleted_id.lock().expect("failed to lock deleted_id") = Some(id);
+            self.delete_result.clone()
+        }
+
+        async fn reorder(&self, _todo_ids: Vec<i64>) -> Result<(), AppError> {
+            unimplemented!("not needed for this test");
+        }
+    }
+
+    fn app(repo: Arc<dyn TodoRepository>) -> Router {
+        Router::new()
+            .route("/todos", post(create_todo))
+            .route("/todos/:id", delete(delete_todo))
+            .with_state(repo)
+    }
+
+    #[tokio::test]
+    async fn create_todo_returns_json() {
+        let repo = Arc::new(FakeRepo {
+            created_title: Mutex::new(None),
+            deleted_id: Mutex::new(None),
+            create_result: Ok(Todo {
+                id: 1,
+                title: "saved".to_string(),
+                completed: false,
+                position: 1,
+            }),
+            delete_result: Ok(false),
+        });
+
+        let response = app(repo.clone())
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/todos")
+                    .header("content-type", "application/json")
+                    .body(Body::from(r#"{"title":"write tests"}"#))
+                    .expect("failed to build request"),
+            )
+            .await
+            .expect("request failed");
+
+        assert_eq!(response.status(), StatusCode::OK);
+
+        let body = to_bytes(response.into_body(), usize::MAX)
+            .await
+            .expect("failed to read body");
+        let json: serde_json::Value = serde_json::from_slice(&body).expect("failed to parse json");
+
+        assert_eq!(json["title"], "saved");
+
+        let created_title = repo
+            .created_title
+            .lock()
+            .expect("failed to lock created_title")
+            .clone();
+        assert_eq!(created_title, Some("write tests".to_string()));
+    }
+
+    #[tokio::test]
+    async fn create_todo_validation_error() {
+        let repo = Arc::new(FakeRepo {
+            created_title: Mutex::new(None),
+            deleted_id: Mutex::new(None),
+            create_result: Ok(Todo {
+                id: 1,
+                title: "saved".to_string(),
+                completed: false,
+                position: 1,
+            }),
+            delete_result: Ok(false),
+        });
+
+        let response = app(repo.clone())
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/todos")
+                    .header("content-type", "application/json")
+                    .body(Body::from(r#"{"title":""}"#))
+                    .expect("failed to build request"),
+            )
+            .await
+            .expect("request failed");
+
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+        let body = to_bytes(response.into_body(), usize::MAX)
+            .await
+            .expect("failed to read body");
+        let json: serde_json::Value = serde_json::from_slice(&body).expect("failed to parse json");
+
+        assert_eq!(json["error"], "Validation failed");
+        let created_title = repo
+            .created_title
+            .lock()
+            .expect("failed to lock created_title")
+            .clone();
+        assert!(created_title.is_none());
+    }
+
+    #[tokio::test]
+    async fn delete_todo_returns_no_content() {
+        let repo = Arc::new(FakeRepo {
+            created_title: Mutex::new(None),
+            deleted_id: Mutex::new(None),
+            create_result: Ok(Todo {
+                id: 1,
+                title: "saved".to_string(),
+                completed: false,
+                position: 1,
+            }),
+            delete_result: Ok(true),
+        });
+
+        let response = app(repo.clone())
+            .oneshot(
+                Request::builder()
+                    .method("DELETE")
+                    .uri("/todos/42")
+                    .body(Body::empty())
+                    .expect("failed to build request"),
+            )
+            .await
+            .expect("request failed");
+
+        assert_eq!(response.status(), StatusCode::NO_CONTENT);
+        let deleted_id = *repo.deleted_id.lock().expect("failed to lock deleted_id");
+        assert_eq!(deleted_id, Some(42));
+    }
+}
