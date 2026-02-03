@@ -84,12 +84,12 @@ jobs:
         run: cp .env.example .env
 
       - name: Start services
-        run: docker compose up -d --build
+        run: docker compose -f docker-compose.e2e.yml up -d --build
 
       - name: Wait for API
         run: |
           for i in {1..30}; do
-            if curl -fsS http://localhost:3000/todos >/dev/null; then exit 0; fi
+            if curl -fsS http://localhost:3100/todos >/dev/null; then exit 0; fi
             sleep 2
           done
           exit 1
@@ -97,7 +97,7 @@ jobs:
       - name: Wait for Frontend
         run: |
           for i in {1..30}; do
-            if curl -fsS http://localhost:3001 >/dev/null; then exit 0; fi
+            if curl -fsS http://localhost:3101 >/dev/null; then exit 0; fi
             sleep 2
           done
           exit 1
@@ -121,5 +121,5 @@ jobs:
         run: npm run test:e2e
         working-directory: frontend
         env:
-          API_URL: http://localhost:3000
-          E2E_BASE_URL: http://localhost:3001
+          API_URL: http://localhost:3100
+          E2E_BASE_URL: http://localhost:3101
