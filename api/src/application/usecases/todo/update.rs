@@ -22,8 +22,10 @@ mod tests {
     use crate::application::ports::todo_repository::TodoRepository;
     use crate::domain::entities::todo::Todo;
 
+    type UpdateArgs = (u32, Option<String>, Option<bool>);
+
     struct FakeRepo {
-        last_args: Mutex<Option<(u32, Option<String>, Option<bool>)>>,
+        last_args: Mutex<Option<UpdateArgs>>,
         todo: Option<Todo>,
     }
 
