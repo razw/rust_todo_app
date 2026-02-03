@@ -38,6 +38,16 @@ docker compose down
 docker compose down -v
 ```
 
+## E2E (Playwright)
+
+E2Eはテスト専用のDocker環境で実行します。
+
+```bash
+bash scripts/run-e2e.sh
+```
+
+内部では `docker-compose.e2e.yml` を使って `3100/3101` で起動し、` .env.e2e` を参照します。終了時に自動で `docker compose down` します。
+
 ## Notes
 
 - SQLiteのデータはDockerボリューム `api-data` に保存されます。
