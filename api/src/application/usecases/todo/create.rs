@@ -25,10 +25,7 @@ mod tests {
     #[async_trait]
     impl TodoRepository for FakeRepo {
         async fn create(&self, title: String) -> Result<Todo, AppError> {
-            *self
-                .last_title
-                .lock()
-                .expect("failed to lock last_title") = Some(title);
+            *self.last_title.lock().expect("failed to lock last_title") = Some(title);
             Ok(self.todo.clone())
         }
 

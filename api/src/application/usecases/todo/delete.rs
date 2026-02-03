@@ -45,10 +45,7 @@ mod tests {
         }
 
         async fn delete(&self, id: u32) -> Result<bool, AppError> {
-            *self
-                .last_id
-                .lock()
-                .expect("failed to lock last_id") = Some(id);
+            *self.last_id.lock().expect("failed to lock last_id") = Some(id);
             Ok(self.result)
         }
 

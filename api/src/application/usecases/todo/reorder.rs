@@ -48,10 +48,7 @@ mod tests {
         }
 
         async fn reorder(&self, todo_ids: Vec<i64>) -> Result<(), AppError> {
-            *self
-                .last_ids
-                .lock()
-                .expect("failed to lock last_ids") = Some(todo_ids);
+            *self.last_ids.lock().expect("failed to lock last_ids") = Some(todo_ids);
             Ok(())
         }
     }

@@ -33,10 +33,7 @@ mod tests {
         }
 
         async fn get_by_id(&self, id: u32) -> Result<Option<Todo>, AppError> {
-            *self
-                .last_id
-                .lock()
-                .expect("failed to lock last_id") = Some(id);
+            *self.last_id.lock().expect("failed to lock last_id") = Some(id);
             Ok(self.todo.clone())
         }
 

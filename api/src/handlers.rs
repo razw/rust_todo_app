@@ -217,7 +217,7 @@ mod tests {
     use axum::body::{to_bytes, Body};
     use axum::http::{Request, StatusCode};
     use axum::routing::{delete, post};
-    use axum::{Router};
+    use axum::Router;
     use tower::ServiceExt;
 
     use super::{create_todo, delete_todo};
@@ -260,10 +260,7 @@ mod tests {
         }
 
         async fn delete(&self, id: u32) -> Result<bool, AppError> {
-            *self
-                .deleted_id
-                .lock()
-                .expect("failed to lock deleted_id") = Some(id);
+            *self.deleted_id.lock().expect("failed to lock deleted_id") = Some(id);
             self.delete_result.clone()
         }
 
@@ -310,8 +307,7 @@ mod tests {
         let body = to_bytes(response.into_body(), usize::MAX)
             .await
             .expect("failed to read body");
-        let json: serde_json::Value =
-            serde_json::from_slice(&body).expect("failed to parse json");
+        let json: serde_json::Value = serde_json::from_slice(&body).expect("failed to parse json");
 
         assert_eq!(json["title"], "saved");
 
@@ -354,8 +350,7 @@ mod tests {
         let body = to_bytes(response.into_body(), usize::MAX)
             .await
             .expect("failed to read body");
-        let json: serde_json::Value =
-            serde_json::from_slice(&body).expect("failed to parse json");
+        let json: serde_json::Value = serde_json::from_slice(&body).expect("failed to parse json");
 
         assert_eq!(json["error"], "Validation failed");
         let created_title = repo
@@ -392,10 +387,7 @@ mod tests {
             .expect("request failed");
 
         assert_eq!(response.status(), StatusCode::NO_CONTENT);
-        let deleted_id = *repo
-            .deleted_id
-            .lock()
-            .expect("failed to lock deleted_id");
+        let deleted_id = *repo.deleted_id.lock().expect("failed to lock deleted_id");
         assert_eq!(deleted_id, Some(42));
     }
 }

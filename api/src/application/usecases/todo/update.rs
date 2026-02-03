@@ -47,10 +47,8 @@ mod tests {
             title: Option<String>,
             completed: Option<bool>,
         ) -> Result<Option<Todo>, AppError> {
-            *self
-                .last_args
-                .lock()
-                .expect("failed to lock last_args") = Some((id, title, completed));
+            *self.last_args.lock().expect("failed to lock last_args") =
+                Some((id, title, completed));
             Ok(self.todo.clone())
         }
 
@@ -75,14 +73,9 @@ mod tests {
             }),
         };
 
-        let result = execute(
-            &repo,
-            5,
-            Some("updated".to_string()),
-            Some(true),
-        )
-        .await
-        .unwrap();
+        let result = execute(&repo, 5, Some("updated".to_string()), Some(true))
+            .await
+            .unwrap();
 
         let last_args = repo
             .last_args
