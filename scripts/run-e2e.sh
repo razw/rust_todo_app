@@ -4,12 +4,13 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 COMPOSE_FILE="$ROOT_DIR/docker-compose.e2e.yml"
 ENV_FILE="$ROOT_DIR/.env.e2e"
+PROJECT_NAME="rust-todo-e2e"
 
 API_URL="http://localhost:3100"
 E2E_BASE_URL="http://localhost:3101"
 
 cleanup() {
-  docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" down
+  docker compose -p "$PROJECT_NAME" -f "$COMPOSE_FILE" --env-file "$ENV_FILE" down
 }
 trap cleanup EXIT
 
@@ -20,7 +21,7 @@ if [ ! -f "$ENV_FILE" ]; then
   cp .env.example "$ENV_FILE"
 fi
 
-docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d --build
+docker compose -p "$PROJECT_NAME" -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d --build
 
 # Wait for API
 for _ in {1..30}; do
